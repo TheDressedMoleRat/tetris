@@ -1,6 +1,6 @@
 // CONSTS //
 
-const DROP_MS = 500
+const DROP_MS = 200
 
 const WIDTH = 10
 const HEIGHT = 20
@@ -11,8 +11,7 @@ const HEIGHT_PX = HEIGHT * CELL_PX
 
 // CANVAS //
 
-const game_canvas = document.createElement("canvas")
-document.body.appendChild(game_canvas)
+let game_canvas = document.getElementById("game-canvas")
 let ctx = game_canvas.getContext("2d")
 game_canvas.width = WIDTH_PX
 game_canvas.height = HEIGHT_PX
@@ -23,7 +22,14 @@ game_canvas.height = HEIGHT_PX
 let board = [...Array(HEIGHT)].map(e => Array(WIDTH).fill(0))
 // end source
 
-const colors = ["#14151b", "#f94144", "#f3722c", "#f8961e", "#f9c74f", "#90be6d", "#43aa8b", "#577590"]
+const color_levels = [
+	["#14151b", "#f94144", "#f3722c", "#f8961e", "#f9c74f", "#90be6d", "#43aa8b", "#577590"],
+	["#000000", "#007bff", "#0091f7", "#00a7ef", "#00bde8", "#00d3e0", "#00e9d8", "#00ffd0"],
+	["#897fbe", "#ffadad", "#ffd6a5", "#fdffb6", "#caffbf", "#9bf6ff", "#a0c4ff", "#ffc6ff"],
+]
+
+let level = 0
+let colors = color_levels[level]
 
 const pieces = [
 	[
@@ -31,10 +37,7 @@ const pieces = [
 		[1, 1]
 	],
 	[
-		[2],
-		[2],
-		[2],
-		[2]
+		[2, 2, 2, 2]
 	],
 	[
 		[0, 3, 3],
@@ -45,18 +48,16 @@ const pieces = [
 		[0, 4, 4]
 	],
 	[
-		[5, 0],
-		[5, 0],
-		[5, 5]
+		[0, 0, 5],
+		[5, 5, 5]
 	],
 	[
-		[0, 6],
-		[0, 6],
-		[6, 6]
+		[6, 0, 0],
+		[6, 6, 6]
 	],
 	[
-		[7, 7, 7],
-		[0, 7, 0]
+		[0, 7, 0],
+		[7, 7, 7]
 	]
 ]
 
@@ -88,11 +89,15 @@ function draw() {
 function is_colliding(background, foreground, dx, dy) {
 	for (let y = 0; y < foreground.length; y++) {
 		for (let x = 0; x < foreground[0].length; x++) {
-			try {
-				if ((foreground[y][x] != 0 && background[dy + y][dx + x] != 0)) {
-					return true
-				}
-			} catch {
+			if (dy + y < 0) {
+				continue
+			}
+
+			if (HEIGHT - (foreground.length + dy) < 0) {
+				return true
+			}
+			
+			if (foreground[y][x] != 0 && background[dy + y][dx + x] != 0) {
 				return true
 			}
 		}
@@ -105,10 +110,11 @@ function spawn_piece() {
 	player_grid = pieces[Math.floor(Math.random() * 7)]
 
 	player_x = Math.floor(WIDTH/2) - Math.floor(player_grid[0].length / 2)
-	player_y = 0
+	player_y = -2
 
-	if (is_colliding(board, player_grid, player_x, player_y)) {
+	if (Math.max(...board[0]) != 0) {
 		board = [...Array(HEIGHT)].map(e => Array(WIDTH).fill(0))
+		colors = base_colors
 	}
 }
 
@@ -118,7 +124,11 @@ function overlay(background, foreground, dx, dy) {
 	for (let y = 0; y < foreground.length; y++) {
 		for (let x = 0; x < foreground[0].length; x++) {
 			if (foreground[y][x] != 0) {
-				overlayed[dy + y][dx + x] = foreground[y][x]
+				try {
+					overlayed[dy + y][dx + x] = foreground[y][x]
+				} catch {
+					console.log(":)")
+				}
 			}
 		}
 	}
@@ -150,11 +160,18 @@ function rotate() {
 }
 
 function clear_rows() {
+	let cleared = 0
 	for (let y = 0; y < HEIGHT; y++) {
 		if (Math.min(...board[y]) != 0) {
 			board.splice(y, 1)
 			board = [Array(WIDTH).fill(0)].concat(board)
+			cleared += 1;
 		}
+	}
+
+	if (cleared == 4) {
+		level += 1
+		colors = color_levels[level % color_levels.length]
 	}
 }
 
