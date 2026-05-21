@@ -1,17 +1,18 @@
 // CONSTS //
 
-const DROP_MS = 200
+const DROP_MS = 300
 
 const WIDTH = 10
 const HEIGHT = 20
 
-const WIDTH_PX = 400
+const WIDTH_PX = 300
 const CELL_PX = WIDTH_PX / WIDTH
 const HEIGHT_PX = HEIGHT * CELL_PX
 
 // CANVAS //
 
-let game_canvas = document.getElementById("game-canvas")
+const game_canvas = document.getElementById("game-canvas")
+
 let ctx = game_canvas.getContext("2d")
 game_canvas.width = WIDTH_PX
 game_canvas.height = HEIGHT_PX
@@ -24,12 +25,15 @@ let board = [...Array(HEIGHT)].map(e => Array(WIDTH).fill(0))
 
 const color_levels = [
 	["#14151b", "#f94144", "#f3722c", "#f8961e", "#f9c74f", "#90be6d", "#43aa8b", "#577590"],
-	["#000000", "#007bff", "#0091f7", "#00a7ef", "#00bde8", "#00d3e0", "#00e9d8", "#00ffd0"],
 	["#897fbe", "#ffadad", "#ffd6a5", "#fdffb6", "#caffbf", "#9bf6ff", "#a0c4ff", "#ffc6ff"],
+	["#000000", "#007bff", "#0091f7", "#00a7ef", "#00bde8", "#00d3e0", "#00e9d8", "#00ffd0"],
 ]
 
 let level = 0
 let colors = color_levels[level]
+
+let next_container = document.getElementById("next-container")
+let hold_container = document.getElementById("hold-container")
 
 const pieces = [
 	[
@@ -37,6 +41,7 @@ const pieces = [
 		[1, 1]
 	],
 	[
+		[0, 0, 0, 0],
 		[2, 2, 2, 2]
 	],
 	[
@@ -106,15 +111,29 @@ function is_colliding(background, foreground, dx, dy) {
 	return false
 }
 
-function spawn_piece() {
-	player_grid = pieces[Math.floor(Math.random() * 7)]
+// source: https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+function shuffle(array) {
+	return array
+		.map(value => ({ value, sort: Math.random() }))
+		.sort((a, b) => a.sort - b.sort)
+		.map(({ value }) => value)
+}
+// end source
 
-	player_x = Math.floor(WIDTH/2) - Math.floor(player_grid[0].length / 2)
+function spawn_piece() {
+	if (bag.length == pieces.length) {
+		bag = bag.concat(shuffle(pieces))
+	}
+
+	player_grid = bag.pop()
+
+	player_x = Math.floor(WIDTH/2) - Math.ceil(player_grid[0].length / 2)
 	player_y = -2
 
 	if (Math.max(...board[0]) != 0) {
 		board = [...Array(HEIGHT)].map(e => Array(WIDTH).fill(0))
-		colors = base_colors
+		level = 0
+		update_level()
 	}
 }
 
@@ -159,6 +178,13 @@ function rotate() {
 
 }
 
+function update_level() {
+	colors = color_levels[level % color_levels.length]
+
+	hold_container.style.backgroundColor = colors[0]
+	next_container.style.backgroundColor = colors[0]
+}
+
 function clear_rows() {
 	let cleared = 0
 	for (let y = 0; y < HEIGHT; y++) {
@@ -171,7 +197,7 @@ function clear_rows() {
 
 	if (cleared == 4) {
 		level += 1
-		colors = color_levels[level % color_levels.length]
+		update_level()
 	}
 }
 
@@ -234,5 +260,8 @@ document.addEventListener("keydown", function(event) {
 	}
 })
 
+let bag = shuffle(pieces)
+
 spawn_piece()
 frame(0)
+update_level()

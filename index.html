@@ -7,9 +7,18 @@
 	<link rel="stylesheet" href="style.css">
 </head>
 <body>
-	<canvas id="game-canvas" width="400" height="800"></canvas>
-
+	<div id="hold-container">
+		<canvas id="hold"></canvas>
+	</div>
 	
+	<div style="display: flex; flex-direction: column;">
+		<p id="level" style="text-align: center;">1</p>
+		<canvas id="game-canvas"></canvas>
+	</div>
+
+	<div id="next-container">
+		<canvas id="next"></canvas>
+	</div>
 
 	<script src="script.js"></script>
 </body>
