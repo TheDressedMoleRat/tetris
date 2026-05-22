@@ -5,17 +5,35 @@ const DROP_MS = 300
 const WIDTH = 10
 const HEIGHT = 20
 
-const WIDTH_PX = 300
+const WIDTH_PX = 250
 const CELL_PX = WIDTH_PX / WIDTH
 const HEIGHT_PX = HEIGHT * CELL_PX
+
+let high_score = localStorage.getItem("highscore")
+
+if (high_score == null) {
+	localStorage.setItem("highscore", 0)
+	high_score = 0
+}
 
 // CANVAS //
 
 const game_canvas = document.getElementById("game-canvas")
 
-let ctx = game_canvas.getContext("2d")
+let next_container = document.getElementById("next-container")
+let hold_container = document.getElementById("hold-container")
+
+let next_canvas = document.getElementById("next")
+let hold_canvas = document.getElementById("hold")
+
 game_canvas.width = WIDTH_PX
 game_canvas.height = HEIGHT_PX
+
+next_container.style.width = 6 * CELL_PX + "px"
+next_container.style.height = 6 * CELL_PX + "px"
+
+hold_container.style.width = 6 * CELL_PX + "px"
+hold_container.style.height = 6 * CELL_PX + "px"
 
 // GAME //
 
@@ -24,16 +42,16 @@ let board = [...Array(HEIGHT)].map(e => Array(WIDTH).fill(0))
 // end source
 
 const color_levels = [
-	["#14151b", "#f94144", "#f3722c", "#f8961e", "#f9c74f", "#90be6d", "#43aa8b", "#577590"],
-	["#897fbe", "#ffadad", "#ffd6a5", "#fdffb6", "#caffbf", "#9bf6ff", "#a0c4ff", "#ffc6ff"],
+	["#2c2e3a", "#f94144", "#f3722c", "#f8961e", "#f9c74f", "#90be6d", "#43aa8b", "#577590"],
+	["#000000", "#ffadad", "#ffd6a5", "#fdffb6", "#caffbf", "#9bf6ff", "#a0c4ff", "#ffc6ff"],
 	["#000000", "#007bff", "#0091f7", "#00a7ef", "#00bde8", "#00d3e0", "#00e9d8", "#00ffd0"],
 ]
 
 let level = 0
 let colors = color_levels[level]
 
-let next_container = document.getElementById("next-container")
-let hold_container = document.getElementById("hold-container")
+let level_display = document.getElementById("level-display")
+let high_score_display = document.getElementById("high-score-display")
 
 const pieces = [
 	[
@@ -41,7 +59,6 @@ const pieces = [
 		[1, 1]
 	],
 	[
-		[0, 0, 0, 0],
 		[2, 2, 2, 2]
 	],
 	[
@@ -66,7 +83,9 @@ const pieces = [
 	]
 ]
 
-function draw_cell(x, y, type) {
+function draw_cell(x, y, type, canvas) {
+	let ctx = canvas.getContext("2d")
+
 	ctx.fillStyle = colors[type]
 	ctx.fillRect(x * CELL_PX, y * CELL_PX, CELL_PX, CELL_PX)
 }
@@ -75,7 +94,7 @@ function draw() {
 	for (let y = 0; y < HEIGHT; y++) {
 		for (let x = 0; x < WIDTH; x++) {
 			let player_tile = 0
-			
+
 			try {
 				player_tile = player_grid[y - player_y][x - player_x]
 			} catch {
@@ -83,9 +102,9 @@ function draw() {
 			}
 
 			if (player_tile == 0 || player_tile == undefined) {
-				draw_cell(x, y, board[y][x])
+				draw_cell(x, y, board[y][x], game_canvas)
 			} else {
-				draw_cell(x, y, player_grid[y - player_y][x - player_x])
+				draw_cell(x, y, player_grid[y - player_y][x - player_x], game_canvas)
 			}
 		}
 	}
@@ -101,7 +120,7 @@ function is_colliding(background, foreground, dx, dy) {
 			if (HEIGHT - (foreground.length + dy) < 0) {
 				return true
 			}
-			
+
 			if (foreground[y][x] != 0 && background[dy + y][dx + x] != 0) {
 				return true
 			}
@@ -120,6 +139,19 @@ function shuffle(array) {
 }
 // end source
 
+function draw_piece(piece_grid, canvas) {
+
+	canvas.height = piece_grid.length * CELL_PX
+	canvas.width = piece_grid[0].length * CELL_PX
+
+	for (let y = 0; y < piece_grid.length; y++) {
+		for (let x = 0; x < piece_grid[0].length; x++) {
+			draw_cell(x, y, piece_grid[y][x], canvas)
+			console.log(`Drew ${x}, ${y} as ${piece_grid[y][x]}`)
+		}
+	}
+}
+
 function spawn_piece() {
 	if (bag.length == pieces.length) {
 		bag = bag.concat(shuffle(pieces))
@@ -135,6 +167,8 @@ function spawn_piece() {
 		level = 0
 		update_level()
 	}
+
+	draw_piece(bag[bag.length - 1], next_canvas)
 }
 
 function overlay(background, foreground, dx, dy) {
@@ -179,10 +213,20 @@ function rotate() {
 }
 
 function update_level() {
+	if (level > high_score) {
+		high_score = level
+		localStorage.setItem("highscore", String(level))
+		high_score_display.textContent = "High score: " + String(level + 1)
+	}
+
 	colors = color_levels[level % color_levels.length]
 
 	hold_container.style.backgroundColor = colors[0]
 	next_container.style.backgroundColor = colors[0]
+
+	level_display.textContent = "Level: " + String(level + 1)
+
+	draw_piece(bag[bag.length - 1], next_canvas)
 }
 
 function clear_rows() {
@@ -230,7 +274,7 @@ function frame(time) {
 		} else {
 			player_y += 1
 		}
-		
+
 		drop_timer = DROP_MS
 	}
 

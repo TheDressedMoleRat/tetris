@@ -7,17 +7,24 @@
 	<link rel="stylesheet" href="style.css">
 </head>
 <body>
-	<div id="hold-container">
-		<canvas id="hold"></canvas>
-	</div>
-	
 	<div style="display: flex; flex-direction: column;">
-		<p id="level" style="text-align: center;">1</p>
-		<canvas id="game-canvas"></canvas>
+		<div id="hold-container">
+			<canvas id="hold"></canvas>
+		</div>
+		<p>hold</p>
 	</div>
 
-	<div id="next-container">
-		<canvas id="next"></canvas>
+	<div style="display: flex; flex-direction: column;">
+		<p id="level-display">Level: 1</p>
+		<canvas id="game-canvas"></canvas>
+		<p id="high-score-display">High score: 1</p>
+	</div>
+
+	<div style="display: flex; flex-direction: column;">
+		<div id="next-container">
+			<canvas id="next"></canvas>
+		</div>
+		<p>next</p>
 	</div>
 
 	<script src="script.js"></script>
