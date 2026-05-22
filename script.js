@@ -147,7 +147,6 @@ function draw_piece(piece_grid, canvas) {
 	for (let y = 0; y < piece_grid.length; y++) {
 		for (let x = 0; x < piece_grid[0].length; x++) {
 			draw_cell(x, y, piece_grid[y][x], canvas)
-			console.log(`Drew ${x}, ${y} as ${piece_grid[y][x]}`)
 		}
 	}
 }
@@ -216,8 +215,9 @@ function update_level() {
 	if (level > high_score) {
 		high_score = level
 		localStorage.setItem("highscore", String(level))
-		high_score_display.textContent = "High score: " + String(level + 1)
 	}
+
+	high_score_display.textContent = "High score: " + String(parseInt(high_score) + 1)
 
 	colors = color_levels[level % color_levels.length]
 
