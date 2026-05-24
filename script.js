@@ -1,6 +1,7 @@
 // CONSTS //
 
 const DROP_MS = 300
+const MOVE_MS = 80
 
 const WIDTH = 10
 const HEIGHT = 20
@@ -15,6 +16,9 @@ if (high_score == null) {
 	localStorage.setItem("highscore", 0)
 	high_score = 0
 }
+
+let held_grid = []
+let old_held = []
 
 // CANVAS //
 
@@ -140,6 +144,9 @@ function shuffle(array) {
 // end source
 
 function draw_piece(piece_grid, canvas) {
+	if (piece_grid.length == 0) {
+		return
+	}
 
 	canvas.height = piece_grid.length * CELL_PX
 	canvas.width = piece_grid[0].length * CELL_PX
@@ -151,12 +158,16 @@ function draw_piece(piece_grid, canvas) {
 	}
 }
 
-function spawn_piece() {
-	if (bag.length == pieces.length) {
-		bag = bag.concat(shuffle(pieces))
+function spawn_piece(piece) {
+	if (piece == undefined || piece.length == 0) {
+		if (bag.length == pieces.length) {
+			bag = shuffle(pieces).concat(bag)
+		}
+	
+		player_grid = bag.pop()
+	} else {
+		player_grid = piece
 	}
-
-	player_grid = bag.pop()
 
 	player_x = Math.floor(WIDTH/2) - Math.ceil(player_grid[0].length / 2)
 	player_y = -2
@@ -227,6 +238,7 @@ function update_level() {
 	level_display.textContent = "Level: " + String(level + 1)
 
 	draw_piece(bag[bag.length - 1], next_canvas)
+	draw_piece(held_grid, hold_canvas)
 }
 
 function clear_rows() {
@@ -251,6 +263,16 @@ function drop() {
 	}
 }
 
+function hold() {
+	old_held = held_grid
+	
+	held_grid = player_grid
+
+	spawn_piece(old_held)
+	drop_timer = DROP_MS
+	update_level()
+}
+
 // MAIN LOOP //
 
 let player_x = 10
@@ -261,11 +283,39 @@ let delta = 0
 let last_frame_time = 0
 let drop_timer = DROP_MS
 
+let move_timer = MOVE_MS
+
+let swapped = false
+
 function frame(time) {
+	
 	delta = time - last_frame_time
 	last_frame_time = time
-
+	
 	drop_timer -= delta
+	
+	let move_direction = keys_down.includes("ArrowRight") - keys_down.includes("ArrowLeft")
+	
+	if (move_direction != 0) {
+		
+		move_timer -= delta
+		
+		if (move_timer <= 0) {
+			move(move_direction)
+			
+			move_timer = MOVE_MS
+		}
+	}
+	
+	console.log(new_keys_down)
+
+	if (new_keys_down.includes(" ")) {
+		drop()
+	}
+
+	if (new_keys_down.includes("ArrowUp")) {
+		rotate()
+	}
 
 	if (drop_timer <= 0) {
 		if (is_colliding(board, player_grid, player_x, player_y + 1)) {
@@ -281,26 +331,81 @@ function frame(time) {
 	clear_rows()
 	draw()
 
+	new_keys_down = []
+
 	requestAnimationFrame(frame)
 }
 
+// document.addEventListener("keydown", function(event) {
+// 	switch (event.key) {
+// 		case "ArrowDown":
+// 			drop_timer = 0
+// 			break
+// 		case "ArrowRight":
+// 			move(1)
+// 			break
+// 		case "ArrowLeft":
+// 			move(-1)
+// 			break
+// 		case "ArrowUp":
+// 			rotate()
+// 			break
+// 		case " ":
+// 			drop()
+// 			break
+// 		case "c":
+// 			hold()
+// 			break
+// 	}
+// })
+
+// let right = false
+// let left = false
+// let down = false
+
+// document.addEventListener("keydown", function(event) {
+// 	switch (event.key) {
+// 		case "ArrowDown":
+// 			down = true
+// 			break
+// 		case "ArrowRight":
+// 			right = true
+// 			break
+// 		case "ArrowLeft":
+// 			left = true
+// 			break
+// 	}
+// })
+
+// document.addEventListener("keyup", function(event) {
+// 	switch(event.key) {
+// 		case "ArrowDown":
+// 			down = false
+// 			break
+// 		case "ArrowRight":
+// 			right = false
+// 			break
+// 		case "ArrowLeft":
+// 			left = false
+// 			break
+
+// 	}
+// })
+
+let keys_down = []
+let new_keys_down = []
+
 document.addEventListener("keydown", function(event) {
-	switch (event.key) {
-		case "ArrowDown":
-			drop_timer = 0
-			break
-		case "ArrowRight":
-			move(1)
-			break
-		case "ArrowLeft":
-			move(-1)
-			break
-		case "ArrowUp":
-			rotate()
-			break
-		case " ":
-			drop()
-			break
+	if (!keys_down.includes(event.key)) {
+		keys_down.push(event.key)
+		new_keys_down.push(event.key)
+	}
+})
+
+document.addEventListener("keyup", function(event) {
+	let i = keys_down.indexOf(event.key)
+	if (i != -1) {
+		keys_down.splice(i, 1)
 	}
 })
 
