@@ -1,7 +1,36 @@
+// if you spam an s-piece to the right or a z-piece to the left at spawn the game starts over?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Solve ↑
+
 // CONSTS //
 
-const DROP_MS = 300
+const START_DROP_MS = 300
 const MOVE_MS = 80
+const DROP_ACCELERATION = 20
 
 const WIDTH = 10
 const HEIGHT = 20
@@ -63,7 +92,10 @@ const pieces = [
 		[1, 1]
 	],
 	[
-		[2, 2, 2, 2]
+		[0, 0, 0, 0],
+		[2, 2, 2, 2],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0] // no
 	],
 	[
 		[0, 3, 3],
@@ -121,11 +153,11 @@ function is_colliding(background, foreground, dx, dy) {
 				continue
 			}
 
-			if (HEIGHT - (foreground.length + dy) < 0) {
-				return true
-			}
-
-			if (foreground[y][x] != 0 && background[dy + y][dx + x] != 0) {
+			try {
+				if (foreground[y][x] != 0 && background[dy + y][dx + x] != 0) {
+					return true
+				}
+			} catch {
 				return true
 			}
 		}
@@ -227,6 +259,8 @@ function update_level() {
 		high_score = level
 		localStorage.setItem("highscore", String(level))
 	}
+	
+	drop_ms = START_DROP_MS - level * DROP_ACCELERATION
 
 	high_score_display.textContent = "High score: " + String(parseInt(high_score) + 1)
 
@@ -253,6 +287,7 @@ function clear_rows() {
 
 	if (cleared == 4) {
 		level += 1
+		drop_ms -= DROP_ACCELERATION
 		update_level()
 	}
 }
@@ -261,19 +296,25 @@ function drop() {
 	while (!is_colliding(board, player_grid, player_x, player_y + 1)) {
 		player_y += 1
 	}
+
+	drop_timer = 0
 }
 
 function hold() {
+	swapped = true
+
 	old_held = held_grid
-	
+
 	held_grid = player_grid
 
 	spawn_piece(old_held)
-	drop_timer = DROP_MS
+	drop_timer = drop_ms
 	update_level()
 }
 
 // MAIN LOOP //
+
+let drop_ms = START_DROP_MS
 
 let player_x = 10
 let player_y = 0
@@ -281,51 +322,60 @@ let player_grid = []
 
 let delta = 0
 let last_frame_time = 0
-let drop_timer = DROP_MS
+let drop_timer = drop_ms
 
 let move_timer = MOVE_MS
 
 let swapped = false
 
 function frame(time) {
-	
 	delta = time - last_frame_time
 	last_frame_time = time
-	
+
 	drop_timer -= delta
-	
+
 	let move_direction = keys_down.includes("ArrowRight") - keys_down.includes("ArrowLeft")
-	
+
+	if (new_keys_down.includes("ArrowRight") || new_keys_down.includes("ArrowLeft")) {
+		move_timer = 0
+	}
+
 	if (move_direction != 0) {
-		
 		move_timer -= delta
-		
+
 		if (move_timer <= 0) {
 			move(move_direction)
-			
+
 			move_timer = MOVE_MS
 		}
-	}
-	
-	console.log(new_keys_down)
-
-	if (new_keys_down.includes(" ")) {
-		drop()
 	}
 
 	if (new_keys_down.includes("ArrowUp")) {
 		rotate()
 	}
 
+	if (new_keys_down.includes("c") && swapped == false) {
+		hold()
+	}
+
+	if (keys_down.includes("ArrowDown")) {
+		drop_timer = 0
+	}
+
+	if (new_keys_down.includes(" ")) {
+		drop()
+	}
+
 	if (drop_timer <= 0) {
 		if (is_colliding(board, player_grid, player_x, player_y + 1)) {
 			board = overlay(board, player_grid, player_x, player_y)
 			spawn_piece()
+			swapped = false
 		} else {
 			player_y += 1
 		}
 
-		drop_timer = DROP_MS
+		drop_timer = drop_ms
 	}
 
 	clear_rows()
