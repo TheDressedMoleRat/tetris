@@ -29,7 +29,7 @@
 // CONSTS //
 
 const START_DROP_MS = 300
-const MOVE_MS = 80
+const MOVE_MS = 90
 const DROP_ACCELERATION = 20
 
 const WIDTH = 10
@@ -92,10 +92,7 @@ const pieces = [
 		[1, 1]
 	],
 	[
-		[0, 0, 0, 0],
 		[2, 2, 2, 2],
-		[0, 0, 0, 0],
-		[0, 0, 0, 0] // no
 	],
 	[
 		[0, 3, 3],
@@ -119,10 +116,15 @@ const pieces = [
 	]
 ]
 
-function draw_cell(x, y, type, canvas) {
+function draw_cell(x, y, type, canvas, transparent = false) {
 	let ctx = canvas.getContext("2d")
 
-	ctx.fillStyle = colors[type]
+	if (transparent) {
+		ctx.fillStyle = colors[type] + "33"
+	} else {
+		ctx.fillStyle = colors[type]
+	}
+
 	ctx.fillRect(x * CELL_PX, y * CELL_PX, CELL_PX, CELL_PX)
 }
 
@@ -144,6 +146,16 @@ function draw() {
 			}
 		}
 	}
+
+	// ghost piece
+	let dx = player_x
+	let dy = player_y + get_distance()
+
+	for (let y = 0; y < player_grid.length; y++) {
+		for (let x = 0; x < player_grid[0].length; x++) {
+			draw_cell(dx + x, dy + y, player_grid[y][x], game_canvas, true)
+		}
+	}
 }
 
 function is_colliding(background, foreground, dx, dy) {
@@ -151,6 +163,10 @@ function is_colliding(background, foreground, dx, dy) {
 		for (let x = 0; x < foreground[0].length; x++) {
 			if (dy + y < 0) {
 				continue
+			}
+
+			if (dx < 0 || dx + foreground[0].length > WIDTH) {
+				return true
 			}
 
 			try {
@@ -292,12 +308,14 @@ function clear_rows() {
 	}
 }
 
-function drop() {
-	while (!is_colliding(board, player_grid, player_x, player_y + 1)) {
-		player_y += 1
+function get_distance() {
+	let distance = 0
+
+	while (!is_colliding(board, player_grid, player_x, player_y + distance + 1)) {
+		distance += 1
 	}
 
-	drop_timer = 0
+	return distance
 }
 
 function hold() {
@@ -354,7 +372,7 @@ function frame(time) {
 		rotate()
 	}
 
-	if (new_keys_down.includes("c") && swapped == false) {
+	if ((new_keys_down.includes("c") || new_keys_down.includes("C")) && swapped == false) {
 		hold()
 	}
 
@@ -363,7 +381,8 @@ function frame(time) {
 	}
 
 	if (new_keys_down.includes(" ")) {
-		drop()
+		player_y += get_distance()
+		drop_timer = 0
 	}
 
 	if (drop_timer <= 0) {
